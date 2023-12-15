@@ -83,3 +83,38 @@ class AccountDetails(models.Model):
 
     def __str__(self):
         return self.Name
+
+
+class Deposit(models.Model):
+    Name=models.CharField(max_length=15)
+    Email=models.CharField(max_length=15)
+    Amount=models.CharField(max_length=15)
+class Transaction(models.Model):
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    type = models.CharField(max_length=100)
+    amount = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
+
+class Message(models.Model):
+    subject = models.CharField(max_length=255)
+    email = models.EmailField()
+    message = models.TextField()
+
+    def __str__(self):
+        return f"{self.subject} - {self.email}"
+
+
+class ContactInformation(models.Model):
+    address = models.CharField(max_length=255)
+    email = models.EmailField(unique=True)  # Assuming email is the unique identifier for each entry
+    phone = models.CharField(max_length=20)
+    social_media_facebook = models.CharField(max_length=255, blank=True)
+    social_media_instagram = models.CharField(max_length=255, blank=True)
+    social_media_linkedin = models.CharField(max_length=255, blank=True)
+    social_media_twitter = models.CharField(max_length=255, blank=True)
+
+    def __str__(self):
+        return self.email

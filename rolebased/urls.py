@@ -22,6 +22,7 @@ urlpatterns = [
     path('checkOTP/', checkOTP ),
     path('sendOTP/',otpGeneration),
     path('AccountDetails/', AccountDetailss.as_view(), name = "AccountDetails"),
+    path('ocr-extract/', ocr_extract, name='ocr_extract'),
      path(
         "",
        PasswordReset.as_view(),
@@ -32,4 +33,11 @@ urlpatterns = [
       ResetPasswordAPI.as_view(),
         name="reset-password",
     ),
+    path('totalUserOneData/', TotalUserOneData.as_view(), name = "totalUserOneData"),
+  
+     path('transaction/', post_transaction),
+    path('transaction/<str:email>/', get_transaction_by_email),
+    path('messages/', post_message, name='post_message'),
+    path('messages/', get_messages_by_email, name='get_messages_by_email'),
+    path('contact-info/', update_or_create_contact_info, name='update_or_create_contact_info'),
 ]

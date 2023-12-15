@@ -9,6 +9,7 @@ class StockFunds(models.Model):
     ifsc=models.CharField(max_length=10)
     panNo=models.CharField(max_length=10)
     price=models.DecimalField(max_digits=7444,decimal_places=2,null=True,blank=True)
+    user_email=models.CharField(max_length=100,null=True,blank=True)
 
 class AmountAccount(models.Model):
     date=models.DateField(auto_now=False)

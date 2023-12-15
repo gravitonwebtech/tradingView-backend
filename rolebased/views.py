@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 import random
 import math
-from addmin.models import AmountAccount
+from addmin.models import *
 class UserList(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializers
@@ -263,12 +263,12 @@ class Sendmail(APIView):
 
         email_message = EmailMessage(
             'Confirmation for Registration',
-            f'Thank you for registering with Groww Capitals!\n\n'
+            f'Thank you for registering with Trading!\n\n'
             f'Your email: {email}\n' 
             f'Your password: {password}\n\n' 
             'We appreciate your trust. Your account is in process and will be confirmed shortly.\n'
             f'For any assistance, please contact our support team at support@growwcapitals.com.\n\n'
-            'Best regards,\nThe Groww Capitals Team ',
+            'Best regards,\nThe Trading Team ',
             settings.EMAIL_HOST_USER,
             [email]
         )
@@ -372,3 +372,159 @@ class UpdateNewAmount(APIView):
         s1 = serializers.serialize('json', s)
         return HttpResponse(s1, content_type='application/json')
 
+# views.py in your Django app
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import default_storage
+import pytesseract
+from PIL import Image
+import os
+import re
+@api_view(['POST'])
+def ocr_extract(request):
+    if request.method == 'POST' and request.FILES.get('image'):
+        image_file = request.FILES['image']
+
+        # Using OCR.space API
+        url = "https://api.ocr.space/parse/image"
+        payload = {
+            'isOverlayRequired': False,
+            'apikey': 'K86122232388957',
+            'language': 'eng',
+        }
+        files = [('image', image_file)]
+
+        response = requests.post(url, data=payload, files=files)
+        result = response.json()
+
+        extracted_text = result['ParsedResults'][0]['ParsedText'] if result.get('ParsedResults') else ''
+
+        # Extract PAN and Aadhaar numbers using regex (example patterns below)
+        pan_pattern = re.compile(r'[A-Z]{5}[0-9]{4}[A-Z]{1}')
+        aadhaar_pattern = re.compile(r'\d{4}\s\d{4}\s\d{4}')
+
+        pan_number = pan_pattern.search(extracted_text)
+        aadhaar_number = aadhaar_pattern.search(extracted_text)
+
+        return Response({
+            'panNumber': pan_number.group() if pan_number else '',
+            'aadhaarNumber': aadhaar_number.group() if aadhaar_number else ''
+        })
+
+    return Response({'error': 'No image provided'}, status=400)
+from django.views.decorators.http import require_http_methods
+class TotalUserOneData(APIView):
+    def post(self, request):
+        Email=request.data.get("userEmail")
+        user=User.objects.filter(email=Email)
+        user1 = serializers.serialize('json', user)
+        AmountData=AmountAccount.objects.filter(user_email=Email)
+        AmountData1 = serializers.serialize('json', AmountData)
+        StockForm=Stock_form.objects.filter(user_email=Email)
+        StockForm1 = serializers.serialize('json', StockForm)
+        widraw=StockFunds.objects.filter(user_email=Email)
+        widraw1 = serializers.serialize('json', widraw)
+        Diposit=Deposit.objects.filter(Email=Email)
+        Diposit1 = serializers.serialize('json', Diposit)
+        print(user)
+        s={
+            "user":user,"Amount":AmountData1,"StockForm":StockForm1,"widraw":widraw1,"Diposit":Diposit1
+        }
+       
+        return JsonResponse(s)
+    def get(self, request, format=None):
+        s=EmployeeData.objects.all()
+        s1 = serializers.serialize('json', s)
+        return HttpResponse(s1, content_type='application/json')
+
+@require_http_methods(["GET"])
+def get_transaction_by_email(request, email):
+    try:
+        # Get the transaction from the database
+        transactions = Transaction.objects.filter(email=email).values()
+        # Convert the transactions to a list
+        transactions_list = list(transactions)
+        return JsonResponse(transactions_list, safe=False)
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Transaction not found'}, status=404)
+
+# View to post a transaction
+@csrf_exempt
+@require_http_methods(["POST"])
+def post_transaction(request):
+    try:
+        # Parse the JSON data from the request
+        data = json.loads(request.body)
+        # Create a new transaction object
+        transaction = Transaction(
+            name=data['name'],
+            email=data['email'],
+            type=data['type'],
+            amount=data['amount']
+        )
+        # Save the transaction to the database
+        transaction.save()
+        return JsonResponse({'message': 'Transaction saved successfully'}, status=201)
+    except (ValueError, KeyError):
+        return JsonResponse({'error': 'Invalid data'}, status=400)
+    
+
+@require_http_methods(["GET"])
+def get_messages_by_email(request, email):
+    try:
+        # Get the messages from the database
+        messages = Message.objects.all()
+        # Convert the messages to a list
+        messages_list = list(messages)
+        return JsonResponse(messages_list, safe=False)
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Messages not found'}, status=404)
+
+# View to post a message
+@csrf_exempt
+@require_http_methods(["POST"])
+def post_message(request):
+    try:
+        # Parse the JSON data from the request
+        data = json.loads(request.body)
+        # Create a new message object
+        message = Message(
+            subject=data['subject'],
+            email=data['email'],
+            message=data['message']
+        )
+        # Save the message to the database
+        message.save()
+        return JsonResponse({'message': 'Message saved successfully'}, status=201)
+    except (ValueError, KeyError):
+        return JsonResponse({'error': 'Invalid data'}, status=400)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def update_or_create_contact_info(request):
+    try:
+        # Parse the JSON data from the request
+        data = json.loads(request.body)
+
+        # Update or create contact information
+        contact_info, created = ContactInformation.objects.update_or_create(
+            email=data['email'],  # Email is used as the identifier
+            defaults={
+                'address': data.get('address', ''),
+                'phone': data.get('phone', ''),
+                'social_media_facebook': data.get('social_media_facebook', ''),
+                'social_media_instagram': data.get('social_media_instagram', ''),
+                'social_media_linkedin': data.get('social_media_linkedin', ''),
+                'social_media_twitter': data.get('social_media_twitter', '')
+            }
+        )
+
+        if created:
+            message = 'Contact information created successfully.'
+        else:
+            message = 'Contact information updated successfully.'
+
+        return JsonResponse({'message': message}, status=201)
+    except (ValueError, KeyError):
+        return JsonResponse({'error': 'Invalid data'}, status=400)
